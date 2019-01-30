@@ -210,7 +210,7 @@ def main(*argss, **kwargss):
     optParser.add_option("-f", "--file", action="store",
                          type='str', dest="file",
                          default="table4.json",
-                         help="input .json file (default: tables4.json)")
+                         help="input .json file (default: table4.json)")
 
     optParser.add_option("-i", "--ignore", action="store_true",
                          dest="ignore",
