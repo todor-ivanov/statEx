@@ -66,6 +66,7 @@ class Dist:
             step += '1'
             step = float(step)
 
+        self.step=step
 
         # print("step: %s" % step)
 
@@ -73,10 +74,12 @@ class Dist:
         sampleMax=max(self.data['sample'])
         self.sampleMax=sampleMax
         self.sampleMin=sampleMin
+        self.avrStep=(self.sampleMax-self.sampleMin)/self.data['n']
+
         # generate the Probability space:
-        self.probSpace=np.arange(sampleMin, sampleMax + step, step)
-        # self.probSpace=np.arange( 0.089, 0.12 + 0.001, 0.001)
+        self.probSpace=np.arange(self.sampleMin-3*self.avrStep, self.sampleMax+3*self.avrStep, self.step)
         # pprint(self.probSpace)
+
 
         # create the figure
         self.figure=plt.figure(num=None, figsize=(15, 12), dpi=80)
@@ -129,7 +132,7 @@ class Dist:
 
         """
         var=None
-        stanDev=None
+        stDev=None
         if expVal:
             var=(1/(float(self.data['n'])-1))*(np.sum( (x - self.data['ma'])**2 for x in self.data['sample']))
             varKey='sigma_theo'
@@ -137,8 +140,8 @@ class Dist:
             var=(1/float(self.data['n']))*(np.sum((x - self.data['m'])**2 for x in self.data['sample']))
             varKey='sigma_emp'
 
-        stanDev=np.sqrt(var)
-        self.data[varKey]=stanDev
+        stDev=np.sqrt(var)
+        self.data[varKey]=stDev
         return var
 
     def plotEDF(self):
@@ -160,15 +163,12 @@ class Dist:
     def plotCDF(self):
         label="CDF"
         title="Cumulative Distribution Function for Sample N: %s" % (self.iD)
-        interval=np.arange(self.sampleMin, self.sampleMax, 0.1)
-        avrStep=(self.sampleMax-self.sampleMin)/self.data['n']
-        extInterval=np.arange(self.sampleMin-3*avrStep, self.sampleMax+3*avrStep, 0.2)
         plt.subplot(223)
         plt.title(title)
         plt.legend(loc='upper right')
         # for x in interval:
         #     print("F(t): %s" % self.cumDistFun(x))
-        plt.plot(extInterval, self.cumDistFun(extInterval), 'r')
+        plt.plot(self.probSpace, self.cumDistFun(self.probSpace), 'r')
         plt.grid(b=True, which='both', axis='both')
 
 
@@ -231,6 +231,7 @@ def run(*args, **kwargs):
         data=json.load(x)
 
     for i in range(start,stop):
+        print("---------------------------------------------------------------")
         dist=Dist(data[str(i)], i)
         dist.empDistFun()
         dist.ma()
@@ -241,6 +242,7 @@ def run(*args, **kwargs):
         dist.plotPDF()
         dist.plotCDF()
         dist.plotHist()
+        print("---------------------------------------------------------------")
         plt.show()
         del dist
 
