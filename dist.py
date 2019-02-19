@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import json, ast
+import json, ast, yaml
 import array
 import math
 import decimal
@@ -80,6 +80,21 @@ class Dist:
         self.probSpace=np.arange(self.sampleMin-3*self.avrStep, self.sampleMax+3*self.avrStep, self.step)
         # pprint(self.probSpace)
 
+        # todo:
+        #      to make the following with the proper Laplace transform instead of
+        #      tabulated valued Laplace function
+        # The commonly used values of the Laplace function [1] are in the key names
+        # while the the values of the x argument are in the key values themselves.
+        # [1]
+        #      F(x) = (2/sqrt(2*pi))*int_0^x(exp(-(t**2)/2))dt
+
+        self.laplFuncVals={
+            '0.8':   1.2816,
+            '0.9':   1.6449,
+            '0.95':  1.9600,
+            '0.99':  2.5758,
+            '0.999': 3.2905
+            }
 
         # create the figure
         self.figure=plt.figure(num=None, figsize=(15, 12), dpi=80)
@@ -134,15 +149,46 @@ class Dist:
         var=None
         stDev=None
         if expVal:
-            var=(1/(float(self.data['n'])-1))*(np.sum( (x - self.data['ma'])**2 for x in self.data['sample']))
-            varKey='sigma_theo'
-        else:
             var=(1/float(self.data['n']))*(np.sum((x - self.data['m'])**2 for x in self.data['sample']))
-            varKey='sigma_emp'
+            varKey='sigmaTheo'
+        else:
+            var=(1/(float(self.data['n'])-1))*(np.sum( (x - self.data['ma'])**2 for x in self.data['sample']))
+            varKey='sigmaEmp'
 
         stDev=np.sqrt(var)
         self.data[varKey]=stDev
         return var
+
+    def confIntStDev(self, expVal=False):
+        pass
+
+    def confIntExpVal(self, stDev=False):
+        eps=None
+        if stDev:
+            x=self.laplFuncVals[str(self.data['eta'])]
+            # print("x: %s" % x )
+            eps=x*(float(self.data['sigma'])/np.sqrt(self.data['n']))
+            epsKey='epsTheo'
+        else:
+            with open('studDistTab.yaml','r') as studDistTabFile:
+                studDistTab=yaml.load(studDistTabFile)
+            # pprint(studDistTab)
+            stValComp=(1 - (1-self.data['eta'])/2)*(10**4)
+            degFree=self.data['n'] - 1
+            if degFree in studDistTab.keys():
+                for tEst, stVal in iter(sorted(studDistTab[degFree].iteritems())):
+                    # print("tEst: %s, stVal: %s" %(tEst,stVal))
+                    if stVal >= stValComp:
+                        break
+                # print("Finally: \ntEst: %s, stVal: %s" %(tEst,stVal))
+            else:
+                print("degree of freedom out of range")
+                return False
+            eps=tEst*(float(self.data['sigmaEmp'])/np.sqrt(self.data['n']))
+            epsKey='epsEmp'
+
+        self.data[epsKey]=eps
+        return eps
 
     def plotEDF(self):
         label="EDF"
@@ -237,13 +283,15 @@ def run(*args, **kwargs):
         dist.ma()
         dist.disp(expVal=True)
         dist.disp(expVal=False)
+        dist.confIntExpVal(stDev=True)
+        dist.confIntExpVal(stDev=False)
         dist.dump()
         dist.plotEDF()
         dist.plotPDF()
         dist.plotCDF()
         dist.plotHist()
         print("---------------------------------------------------------------")
-        plt.show()
+        # plt.show()
         del dist
 
 
