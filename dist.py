@@ -17,6 +17,7 @@ import matplotlib
 # matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.special as sps
 
 class Dist:
     """"
@@ -69,7 +70,8 @@ class Dist:
 
         sampleMin=min(self.data['sample'])
         sampleMax=max(self.data['sample'])
-
+        self.sampleMax=sampleMax
+        self.sampleMin=sampleMin
         # generate the Probability space:
         self.probSpace=np.arange(sampleMin, sampleMax + step, step)
         # self.probSpace=np.arange( 0.089, 0.12 + 0.001, 0.001)
@@ -92,6 +94,19 @@ class Dist:
             n=self.data['n']
             self.data['edfVal'].append(float(m)/float(n))
             # print("%s/%s=" % (float(m), float(n)))
+
+    def cumDistFun(self, x):
+        """
+        Cumulative distribution function for a normal Distribution with
+        known mean and standard deviation.
+        erf: https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.special.erf.html
+        cdf: https://en.wikipedia.org/wiki/Normal_distribution#Cumulative_distribution_function
+        F(t) = F((x-m)/sigma)=(1/2)*(1+erf((x-m)/(sigma*sqrt(2))))
+        """
+        m=self.data['m']
+        sigma=self.data['sigma']
+        print("m=%s,sigma=%s" %(m,sigma))
+        return (1/2.0) * (1.0 + sps.erf((x-m)/(sigma * np.sqrt(2))))
 
     def ma(self):
         # Find the mean of a sample.
@@ -120,9 +135,16 @@ class Dist:
     def plotCDF(self):
         label="CDF"
         title="Cumulative Distribution Function for Sample N: %s" % (self.iD)
+        interval=np.arange(self.sampleMin, self.sampleMax, 0.1)
+        # calculate 
+        avrStep=(self.sampleMax-self.sampleMin)/self.data['n']
+        extInterval=np.arange(self.sampleMin-3*avrStep, self.sampleMax+3*avrStep, 0.2)
         plt.subplot(223)
         plt.title(title)
         plt.legend(loc='upper right')
+        # for x in interval:
+        #     print("F(t): %s" % self.cumDistFun(x))
+        plt.plot(extInterval, self.cumDistFun(extInterval), 'r')
         plt.grid(b=True, which='both', axis='both')
 
 
