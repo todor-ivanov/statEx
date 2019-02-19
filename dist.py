@@ -66,6 +66,7 @@ class Dist:
             step += '1'
             step = float(step)
 
+
         # print("step: %s" % step)
 
         sampleMin=min(self.data['sample'])
@@ -116,6 +117,30 @@ class Dist:
         self.data['ma']=ma
         return ma
 
+    def disp(self, expVal=False):
+        """
+        Calculate the statistical dispersion (variance and standard deviation):
+
+        1. Known expectation value:
+        variance = sigma**2 = (1/n)*sum((x_i - m)**2)
+
+        2. Unknown expectation value:
+        variance = sigma**2 = (1/(n -1))*sum((x_i - ma)**2)
+
+        """
+        var=None
+        stanDev=None
+        if expVal:
+            var=(1/(float(self.data['n'])-1))*(np.sum( (x - self.data['ma'])**2 for x in self.data['sample']))
+            varKey='sigma_theo'
+        else:
+            var=(1/float(self.data['n']))*(np.sum((x - self.data['m'])**2 for x in self.data['sample']))
+            varKey='sigma_emp'
+
+        stanDev=np.sqrt(var)
+        self.data[varKey]=stanDev
+        return var
+
     def plotEDF(self):
         label="EDF"
         title="Empirical Distribution Function for Sample N: %s" % (self.iD)
@@ -136,7 +161,6 @@ class Dist:
         label="CDF"
         title="Cumulative Distribution Function for Sample N: %s" % (self.iD)
         interval=np.arange(self.sampleMin, self.sampleMax, 0.1)
-        # calculate 
         avrStep=(self.sampleMax-self.sampleMin)/self.data['n']
         extInterval=np.arange(self.sampleMin-3*avrStep, self.sampleMax+3*avrStep, 0.2)
         plt.subplot(223)
@@ -210,6 +234,8 @@ def run(*args, **kwargs):
         dist=Dist(data[str(i)], i)
         dist.empDistFun()
         dist.ma()
+        dist.disp(expVal=True)
+        dist.disp(expVal=False)
         dist.dump()
         dist.plotEDF()
         dist.plotPDF()
