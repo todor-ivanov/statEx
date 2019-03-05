@@ -125,13 +125,13 @@ class Dist1:
         print("m=%s,sigma=%s" %(m,sigma))
         return (1/2.0) * (1.0 + sps.erf((x-m)/(sigma * np.sqrt(2))))
 
-    def ma(self):
+    def expVal(self):
         # Find the mean of a sample.
         # Using the simplest - arithmetic approach for the moment.
         sampSum=sum(self.data['sample'])
-        ma=float(sampSum)/self.data['n']
-        self.data['ma']=ma
-        return ma
+        expVal=float(sampSum)/self.data['n']
+        self.data['expVal']=expVal
+        return expVal
 
     def disp(self, expVal=False):
         """
@@ -150,7 +150,7 @@ class Dist1:
             var=(1/float(self.data['n']))*(np.sum((x - self.data['m'])**2 for x in self.data['sample']))
             varKey='sigmaTheo'
         else:
-            var=(1/(float(self.data['n'])-1))*(np.sum( (x - self.data['ma'])**2 for x in self.data['sample']))
+            var=(1/(float(self.data['n'])-1))*(np.sum( (x - self.data['expVal'])**2 for x in self.data['sample']))
             varKey='sigmaEmp'
 
         stDev=np.sqrt(var)

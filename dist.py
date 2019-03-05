@@ -43,7 +43,7 @@ def run1(*args, **kwargs):
         print("---------------------------------------------------------------")
         dist=Dist1(data[str(i)], i)
         dist.empDistFun()
-        dist.ma()
+        dist.expVal()
         dist.disp(expVal=True)
         dist.disp(expVal=False)
         dist.confIntExpVal(stDev=True)
