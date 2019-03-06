@@ -19,7 +19,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.special as sps
-
+import pdb
 
 def run1(*args, **kwargs):
 
@@ -62,7 +62,7 @@ def run2(*args, **kwargs):
     # if a 'sample' number is not provided on the command line
     # run on all the samples from the current table
     start=0
-    stop=31
+    stop=3
     if 'num' in kwargs.keys() and kwargs['num'] is not None:
         start=kwargs['num']
         stop=kwargs['num']+1
@@ -72,7 +72,7 @@ def run2(*args, **kwargs):
     data=dict()
     with open(dataFile) as x:
         data=json.load(x)
-
+    # pdb.set_trace()
     for i in range(start,stop):
         print("---------------------------------------------------------------")
         dist=Dist2(data[str(i)], i)
