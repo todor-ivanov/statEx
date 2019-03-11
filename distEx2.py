@@ -102,8 +102,8 @@ class Dist2:
                  facecolor='blue',
                  alpha=0.75,
                  label=label,
-                 # bins=numBins,
-                 align='left')
+                 bins=numBins,
+                 range=binsRange)
 
 
     # def cumDistFun(self, x):
