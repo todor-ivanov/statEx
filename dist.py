@@ -76,8 +76,9 @@ def run2(*args, **kwargs):
     for i in range(start,stop):
         print("---------------------------------------------------------------")
         dist=Dist2(data[str(i)], i)
-        dist.plotHist()
+        dist.parMom()
         dist.dump()
+        dist.plotHist()
         print("---------------------------------------------------------------")
         plt.show()
         del dist

@@ -16,6 +16,33 @@ import numpy as np
 import scipy.special as sps
 import pdb
 
+class Iter2D:
+        """
+        a class used to create an iterator of the n-th elemnts
+        of a list of tuples (lot) (or any two dimensional object in python).
+        """
+        def __init__(self, lot, n):
+            self.lot=lot
+            self.index=0
+            self.n=n
+
+        def __iter__(self):
+            return self
+
+        def __next__(self):
+            try:
+                result = self.lot[self.index][self.n]
+            except IndexError:
+                raise StopIteration
+            self.index += 1
+            return result
+
+        def iter(self):
+            return self.__iter__()
+
+        def next(self):
+            return self.__next__()
+
 class Dist2:
     """"
     A simle class representing a distribution.
@@ -37,8 +64,93 @@ class Dist2:
         # correct eventual typos in the .json file
         self.data['n']=sum(self.data['ni'])
 
+        # Full binsRange
+        binsRange=(self.data['xmin'], self.data['xmax'])
+        self.binsRange=binsRange
+
+        numBins=self.data['l']
+        self.numBins=numBins
+
         # create the figure
         self.figure=plt.figure(num=None, figsize=(15, 12), dpi=80)
+
+    def parMom(self):
+        """
+        Estimate distribution parameters from the sample
+        using the 'Method of moments'
+        """
+
+        binWidth=(self.data['xmax']-self.data['xmin'])/self.data['l']
+        binsEdges=range(self.data['xmin'], self.data['xmax'] + binWidth, binWidth)
+
+        # estimate binTuples per bin
+        edge1=None
+        edge2=None
+        binTuples=[]
+        binCount=0
+        binHits=None
+        binAvr=None
+        empProb=None
+        relFreq=None
+        binExpVal=None
+        for edge in binsEdges:
+            edge1=edge2
+            edge2=edge
+            if edge1 and edge2:
+                binHits=self.data['ni'][binCount]
+                binAvr=(edge1+edge2)/2.
+                empProb=float(binHits)/self.data['n']
+                relFreq=float(empProb)/binWidth
+                binExpVal=binAvr*empProb
+                binTuples.append((binCount,    # 0
+                                  edge1,       # 1
+                                  edge2,       # 2
+                                  binHits,     # 3
+                                  binAvr,      # 4
+                                  empProb,     # 5
+                                  binExpVal,   # 6
+                              ))
+                binCount += 1
+
+        expVal=sum(Iter2D(binTuples, 6))
+        self.data['expVal']=expVal
+
+        edge1=None
+        edge2=None
+        binDev=None
+        binDevSq=None
+        binDisp=None
+        for i, binn in enumerate(binTuples):
+            binDev=binn[4]-expVal
+            binDevSq=binDev**2
+            binDisp=binDevSq*binn[5]
+            binTuples[i] = binn + (binDev, binDevSq, binDisp)
+        self.data['binTuples']=binTuples
+
+        # Estimate Normal Distribution parameters:
+        variance=sum(Iter2D(binTuples,9))
+        self.data['variance']=variance
+
+        stDev=math.sqrt(variance)
+        self.data['stDev']=stDev
+
+        # Estimate Unform Distribution parameters:
+        uniLimMin=expVal-stDev*math.sqrt(3)
+        uniLimMax=expVal+stDev*math.sqrt(3)
+        self.data['uniLimMin']=uniLimMin
+        self.data['uniLimMax']=uniLimMax
+
+        # artificially generate sample with the porper number of entries per bin
+        # matplotlib cannot plot histograms in ranges - it expects a full sample
+        sample=[]
+        for binn in binTuples:
+            # generate sample into the half-opened interval [0.0,1) with size ni
+            binSample=np.random.random_sample(binn[3])
+            for ranVal in binSample:
+                sample.append(binn[1] + binWidth*ranVal)
+        self.data['sample']=sample
+
+        ########################################################
 
     def dump(self):
         print("outputfile: %s" % self.outputFile )
@@ -47,50 +159,6 @@ class Dist2:
     def plotHist(self):
         label="HIST"
         title="Histogram for Sample N: %s" % (self.iD)
-        binWidth=(self.data['xmax']-self.data['xmin'])/self.data['l']
-        binsEdges=range(self.data['xmin'], self.data['xmax'] + binWidth, binWidth)
-
-        # Full binsRange
-        binsRange=(self.data['xmin'], self.data['xmax'])
-
-        # estimate binRanges per bin
-        edge1=None
-        edge2=None
-        bins=[]
-        binCount=0
-        for edge in binsEdges:
-            edge1=edge2
-            edge2=edge
-            if edge1 and edge2:
-                bins.append((binCount, self.data['ni'][binCount], edge1, edge2))
-                binCount += 1
-
-        self.data['binRanges']=bins
-
-        # artificially generate sample with the porper number of entries per bin:
-        sample=[]
-        for binn in self.data['binRanges']:
-            # generate sample into the half-opened interval [0.0,1) with size ni
-            binSample=np.random.random_sample(binn[1])
-            for ranVal in binSample:
-                sample.append(binn[2] + binWidth*ranVal)
-        self.data['sample']=sample
-
-        empProb=[]
-        for binn in self.data['ni']:
-            empProb.append(float(binn)/self.data['n'])
-        self.data['empProb']=empProb
-
-
-        empProb=None
-        relFreq=[]
-        for empProb in self.data['empProb']:
-            relFreq.append(float(empProb)/binWidth)
-        # pdb.set_trace()
-        self.data['relFreq']=relFreq
-
-        numBins=self.data['l']
-        print("numBins: %s" % numBins)
 
         self.figure.add_subplot(222, label=label)
         plt.subplot(222)
@@ -102,54 +170,6 @@ class Dist2:
                  facecolor='blue',
                  alpha=0.75,
                  label=label,
-                 bins=numBins,
-                 range=binsRange)
+                 bins=self.numBins,
+                 range=self.binsRange)
 
-
-    # def cumDistFun(self, x):
-    #     """
-    #     Cumulative distribution function for a normal Distribution with
-    #     known mean and standard deviation.
-    #     erf: https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.special.erf.html
-    #     cdf: https://en.wikipedia.org/wiki/Normal_distribution#Cumulative_distribution_function
-    #     F(t) = F((x-m)/sigma)=(1/2)*(1+erf((x-m)/(sigma*sqrt(2))))
-    #     """
-    #     m=self.data['m']
-    #     sigma=self.data['sigma']
-    #     print("m=%s,sigma=%s" %(m,sigma))
-    #     return (1/2.0) * (1.0 + sps.erf((x-m)/(sigma * np.sqrt(2))))
-
-    # def expVal(self):
-    #     # Find the mean of a sample.
-    #     # Using the simplest - arithmetic approach for the moment.
-    #     sampSum=sum(self.data['sample'])
-    #     expVal=float(sampSum)/self.data['n']
-    #     self.data['expVal']=expVal
-    #     return expVal
-
-    # def disp(self, expVal=False):
-    #     """
-    #     Calculate the statistical dispersion (variance and standard deviation):
-
-    #     1. Known expectation value:
-    #     variance = sigma**2 = (1/n)*sum((x_i - m)**2)
-
-    #     2. Unknown expectation value:
-    #     variance = sigma**2 = (1/(n -1))*sum((x_i - ma)**2)
-
-    #     """
-    #     var=None
-    #     stDev=None
-    #     if expVal:
-    #         var=(1/float(self.data['n']))*(np.sum((x - self.data['m'])**2 for x in self.data['sample']))
-    #         varKey='sigmaTheo'
-    #     else:
-    #         var=(1/(float(self.data['n'])-1))*(np.sum( (x - self.data['ma'])**2 for x in self.data['sample']))
-    #         varKey='sigmaEmp'
-
-    #     stDev=np.sqrt(var)
-    #     self.data[varKey]=stDev
-    #     return var
-
-    # def fit(self):
-    #     pass
