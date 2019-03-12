@@ -133,6 +133,8 @@ class Dist2:
             lapVals[x]=self.lapInt(x)
         self.data['lapVals']=lapVals
 
+        expVal=self.data['expVal']
+        stDev=self.data['stDev']
         binWidth=self.binWidth
         binsEdges=self.binsEdges
         binTuplesChi=[]
@@ -150,14 +152,20 @@ class Dist2:
 
         # add the final hits to the last tupple
         if accum:
-            index=len(binTuplesChi)
             tmpTuple=binTuplesChi.pop()
-            binTuplesChi.append((index,
+            binTuplesChi.append((len(binTuplesChi),
                                  tmpTuple[1],
                                  tmpTuple[2],
                                  tmpTuple[3]+accum))
 
+        for i, binn in enumerate(binTuplesChi):
+            x1=(binn[0]-expVal)/stDev
+            x2=(binn[1]-expVal)/stDev
+            teorProb=(self.lapInt(x2) - self.lapInt(x1))/2.0
+            binTuplesChi[i] = binn + (teorProb,)
+
         self.data['binTuplesChi']=binTuplesChi
+
 
 
     def parMom(self):
