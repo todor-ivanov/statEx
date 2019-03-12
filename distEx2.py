@@ -9,6 +9,8 @@ from optparse import OptionParser
 from math import ceil
 from math import log
 
+from numpy import sqrt, sin, cos, pi, exp, inf
+
 import matplotlib
 # matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -16,6 +18,9 @@ import numpy as np
 import scipy.special as sps
 import scipy.stats as stats
 import pdb
+
+import scipy.integrate as integrate
+# import scipy.special as special
 
 class Iter2D:
         """
@@ -72,17 +77,10 @@ class Dist2:
         numBins=self.data['l']
         self.numBins=numBins
 
-        # create the figure
-        self.figure=plt.figure(num=None, figsize=(15, 12), dpi=80)
-
-    def parMom(self):
-        """
-        Estimate distribution parameters from the sample
-        using the 'Method of moments'
-        """
-
         binWidth=(self.data['xmax']-self.data['xmin'])/self.data['l']
         binsEdges=range(self.data['xmin'], self.data['xmax'] + binWidth, binWidth)
+        self.binWidth=binWidth
+        self.binsEdges=binsEdges
 
         # estimate binTuples per bin
         edge1=None
@@ -112,6 +110,92 @@ class Dist2:
                                   binExpVal,   # 6
                               ))
                 binCount += 1
+        self.binTuples=binTuples
+
+        # create the figure
+        self.figure=plt.figure(num=None, figsize=(15, 12), dpi=80)
+
+    def lapInt(self, x):
+        """
+        Intgrate the Laplace function in the interval [0,x]
+        """
+        coef=(2/(sqrt(2*pi)))
+        integ=integrate.quad(lambda t: exp(-(t**2)/2) ,0,x)
+        return coef*integ[0]
+
+
+    def chiSqrtInt(self, x, k):
+        pass
+
+    def chiSqrtTest(self):
+        lapVals=dict()
+        for x in map(lambda x: x/10.0, range(0, 40, 1)):
+            lapVals[x]=self.lapInt(x)
+        self.data['lapVals']=lapVals
+
+        binWidth=self.binWidth
+        binsEdges=self.binsEdges
+        binTuplesChi=[]
+        accum=0
+        for binTuple in self.binTuples:
+            accum += binTuple[3]
+            if accum  > 5:
+                binTuplesChi.append((len(binTuplesChi),
+                                     binTuple[1],
+                                     binTuple[2],
+                                     accum))
+                accum=0
+            else:
+                continue
+
+        # add the final hits to the last tupple
+        if accum:
+            index=len(binTuplesChi)
+            tmpTuple=binTuplesChi.pop()
+            binTuplesChi.append((index,
+                                 tmpTuple[1],
+                                 tmpTuple[2],
+                                 tmpTuple[3]+accum))
+
+        self.data['binTuplesChi']=binTuplesChi
+
+
+    def parMom(self):
+        """
+        Estimate distribution parameters from the sample
+        using the 'Method of moments'
+        """
+        binWidth=self.binWidth
+        binsEdges=self.binsEdges
+        binTuples=self.binTuples
+        # # estimate binTuples per bin
+        # edge1=None
+        # edge2=None
+        # binTuples=[]
+        # binCount=0
+        # binHits=None
+        # binAvr=None
+        # empProb=None
+        # relFreq=None
+        # binExpVal=None
+        # for edge in binsEdges:
+        #     edge1=edge2
+        #     edge2=edge
+        #     if edge1 and edge2:
+        #         binHits=self.data['ni'][binCount]
+        #         binAvr=(edge1+edge2)/2.
+        #         empProb=float(binHits)/self.data['n']
+        #         relFreq=float(empProb)/binWidth
+        #         binExpVal=binAvr*empProb
+        #         binTuples.append((binCount,    # 0
+        #                           edge1,       # 1
+        #                           edge2,       # 2
+        #                           binHits,     # 3
+        #                           binAvr,      # 4
+        #                           empProb,     # 5
+        #                           binExpVal,   # 6
+        #                       ))
+        #         binCount += 1
 
         expVal=sum(Iter2D(binTuples, 6))
         self.data['expVal']=expVal
@@ -132,12 +216,12 @@ class Dist2:
         variance=sum(Iter2D(binTuples,9))
         self.data['variance']=variance
 
-        stDev=math.sqrt(variance)
+        stDev=sqrt(variance)
         self.data['stDev']=stDev
 
         # Estimate Unform Distribution parameters:
-        uniLimMin=expVal-stDev*math.sqrt(3)
-        uniLimMax=expVal+stDev*math.sqrt(3)
+        uniLimMin=expVal-stDev*sqrt(3)
+        uniLimMax=expVal+stDev*sqrt(3)
         self.data['uniLimMin']=uniLimMin
         self.data['uniLimMax']=uniLimMax
 
@@ -155,6 +239,9 @@ class Dist2:
     def dump(self):
         print("outputfile: %s" % self.outputFile )
         print("data[%s]: %s\n\n\n" % (self.iD, pformat(self.data)))
+
+    def chiSqrt(self):
+        pass
 
     def plotHist(self):
         plt.rc('text', usetex=True)

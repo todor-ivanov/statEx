@@ -77,6 +77,7 @@ def run2(*args, **kwargs):
         print("---------------------------------------------------------------")
         dist=Dist2(data[str(i)], i)
         dist.parMom()
+        dist.chiSqrtTest()
         dist.dump()
         dist.plotHist()
         print("---------------------------------------------------------------")
