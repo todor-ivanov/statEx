@@ -14,12 +14,13 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.special as sps
+import scipy.stats as stats
 import pdb
 
 class Iter2D:
         """
         a class used to create an iterator of the n-th elemnts
-        of a list of tuples (lot) (or any two dimensional object in python).
+        of a list of tuples (lot) (or any two dimensional object).
         """
         def __init__(self, lot, n):
             self.lot=lot
@@ -150,16 +151,17 @@ class Dist2:
                 sample.append(binn[1] + binWidth*ranVal)
         self.data['sample']=sample
 
-        ########################################################
 
     def dump(self):
         print("outputfile: %s" % self.outputFile )
         print("data[%s]: %s\n\n\n" % (self.iD, pformat(self.data)))
 
     def plotHist(self):
+        plt.rc('text', usetex=True)
+        mu=self.data['expVal']
+        sigma=self.data['stDev']
         label="HIST"
-        title="Histogram for Sample N: %s" % (self.iD)
-
+        title=r'Histogram for Sample N: %s  $\sigma$ = %s  $\mu$ = %s ' % (self.iD, sigma, mu)
         self.figure.add_subplot(222, label=label)
         plt.subplot(222)
         plt.title(title)
@@ -173,3 +175,11 @@ class Dist2:
                  bins=self.numBins,
                  range=self.binsRange)
 
+        x = np.linspace(mu - 3*sigma, mu + 3*sigma, 100)
+        y = stats.norm.pdf(x, mu, sigma)
+        plt.plot(x, y, 'red')
+
+        a=self.data['uniLimMin']
+        b=self.data['uniLimMax']
+        y=map(lambda xval: 0 if xval < a or xval > b else 1.0/(b-a)  ,x)
+        plt.plot(x, y, 'black')
